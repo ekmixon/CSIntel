@@ -51,7 +51,7 @@ def readConfig(fileName=None):
 
     # check file exists
     if (os.path.exists(fileName)) is False:
-        raise Exception("Config file does not exist: " + fileName)
+        raise Exception(f"Config file does not exist: {fileName}")
 
     # read config file
     parser = SafeConfigParser()
@@ -164,10 +164,8 @@ class CSIntelAPI:
         parser.set(section, 'custkey', self.custkey)
         parser.set(section, 'perpage', self.perPage)
 
-        # write to disk
-        f = open(fileName, "w")
-        parser.write(f)
-        f.close()
+        with open(fileName, "w") as f:
+            parser.write(f)
     # end writeConfig()
 
     def getHeaders(self):
@@ -177,9 +175,8 @@ class CSIntelAPI:
         passed as headers and not in the URL request itself.
         headers = {'X-CSIX-CUSTID': custid, 'X-CSIX-CUSTKEY': custkey}
         """
-        headers = {'X-CSIX-CUSTID': self.custid, 'X-CSIX-CUSTKEY': self.custkey}
         # this is the format needed by the requests module
-        return headers
+        return {'X-CSIX-CUSTID': self.custid, 'X-CSIX-CUSTKEY': self.custkey}
     # end getHeaders
 
     #def request(self, query):
@@ -209,8 +206,8 @@ class CSIntelAPI:
         #Specific query
         fullQuery += query   
 
-        if self.debug:                  # Show the full query URL in debug
-            print("fullQuery: " + fullQuery)
+        if self.debug:          # Show the full query URL in debug
+            print(f"fullQuery: {fullQuery}")
 
         headers = self.getHeaders()     # format the API key & ID
 
@@ -232,7 +229,7 @@ class CSIntelAPI:
 
         # catch all?
         if r.status_code != 200:
-            raise Exception('HTTP Error: ' + str(r.status_code))
+            raise Exception(f'HTTP Error: {str(r.status_code)}')
 
         return r
     # end request()
@@ -243,8 +240,7 @@ class CSIntelAPI:
         encodes them all in a single URL string.
         """
 
-        query = urlencode(kwargs)
-        return query
+        return urlencode(kwargs)
 
     def getActorQuery(self, actor, searchFilter="equal", **kwargs):
         """
@@ -260,16 +256,10 @@ class CSIntelAPI:
 
         valid = ["match", "equal"]
         if searchFilter not in valid:
-            raise Exception("not a valid search filter: " + searchFilter)
+            raise Exception(f"not a valid search filter: {searchFilter}")
 
-        encodedargs = ""
-
-        if any(kwargs):
-            encodedargs = "&" + self.getURLParams(**kwargs)
-
-        query = "actor?" + searchFilter + "=" + actor + encodedargs
-
-        return query
+        encodedargs = f"&{self.getURLParams(**kwargs)}" if any(kwargs) else ""
+        return f"actor?{searchFilter}={actor}{encodedargs}"
     # end getActorQuery
 
     def SearchActorEqual(self, actor, **kwargs):
@@ -280,8 +270,7 @@ class CSIntelAPI:
         URL request - in case you want to filter or sort, for example.
         """
         query = self.getActorQuery(actor, perPage=self.perpage, page=self.page, include_deleted=self.deleted, **kwargs)
-        result = self.request(query)
-        return result
+        return self.request(query)
 
     def SearchActorMatch(self, actor, **kwargs):
         """
@@ -291,8 +280,7 @@ class CSIntelAPI:
         URL request - in case you want to filter or sort, for example.
         """
         query = self.getActorQuery(actor, searchFilter="match", perPage=self.perpage, page=self.page, include_deleted=self.deleted, **kwargs)
-        result = self.request(query)
-        return result
+        return self.request(query)
 
     def getIndicatorQuery(self, indicator, searchFilter="equal", **kwargs):
         """
@@ -301,15 +289,8 @@ class CSIntelAPI:
         specific match or equal. Any other keyword attributes passed will also
         be encoded as parameters.
         """
-        encodedargs = ""
-
-        if any(kwargs):
-            # extra keyword arguments get passed - use to sort, filter.
-            encodedargs = "&" + self.getURLParams(**kwargs)
-
-        query = "indicator?" + searchFilter + "=" + indicator + encodedargs
-
-        return query
+        encodedargs = f"&{self.getURLParams(**kwargs)}" if any(kwargs) else ""
+        return f"indicator?{searchFilter}={indicator}{encodedargs}"
     # end getIndicatorQuery
 
     def SearchIndicatorEqual(self, indicator, **kwargs):
@@ -320,10 +301,8 @@ class CSIntelAPI:
 
         # build URL query
         query = self.getIndicatorQuery(indicator, perPage=self.perpage, include_deleted=self.deleted, **kwargs)
-        # search API
-        result = self.request(query)
         # return results
-        return result
+        return self.request(query)
     # end SearchIndicatorEqual()
 
     def SearchIndicatorMatch(self, indicator, **kwargs):
@@ -332,8 +311,7 @@ class CSIntelAPI:
         """
 
         query = self.getIndicatorQuery(indicator, perPage=self.perpage, page=self.page, include_deleted=self.deleted, **kwargs)
-        result = self.request(query)
-        return result
+        return self.request(query)
     # end SearchIndicatorMatch()
 
     def SearchIP(self, ip):
@@ -342,8 +320,7 @@ class CSIntelAPI:
         """
 
         query = self.getIndicatorQuery(ip, searchFilter="match", type='ip_address', perPage=self.perpage, include_deleted=self.deleted)
-        result = self.request(query)
-        return result
+        return self.request(query)
     # end SearchIP()
 
     def SearchDomain(self, domain):
@@ -352,8 +329,7 @@ class CSIntelAPI:
         """
 
         query = self.getIndicatorQuery(domain, searchFilter="match", type='domain', perPage=self.perpage, include_deleted=self.deleted)
-        result = self.request(query)
-        return result
+        return self.request(query)
     # end SearchDomain()
 
     def SearchMutex(self, mutex):
@@ -362,8 +338,7 @@ class CSIntelAPI:
         """
 
         query = self.getIndicatorQuery(mutex, searchFilter="match", type='mutex_name', perPage=self.perpage)
-        result = self.request(query)
-        return result
+        return self.request(query)
     # end SearchMutex()
 
     def SearchHash(self, myhash):
@@ -386,9 +361,7 @@ class CSIntelAPI:
 
         # build query to search for hash by type
         query = self.getIndicatorQuery(myhash, type=htype, perPage=self.perpage)
-        # search API
-        result = self.request(query)
-        return result
+        return self.request(query)
     # end SearchHash()
 
     def getLastUpdatedQuery(self, date, searchFilter, **kwargs):
@@ -397,16 +370,11 @@ class CSIntelAPI:
         The searchfilter defaults to greater than or equal to the time passed.
         """
 
-        encodedargs = ""
-
-        if any(kwargs):
-            # extra keyword arguments get passed - use to sort, filter.
-            encodedargs = self.getURLParams(**kwargs)
-
-        query = "last_updated?" + searchFilter + "=" + str(date) + "&" + encodedargs
+        encodedargs = self.getURLParams(**kwargs) if any(kwargs) else ""
+        query = f"last_updated?{searchFilter}={str(date)}&{encodedargs}"
 
         if self.debug:
-            print("query: " + query)
+            print(f"query: {query}")
 
         return query
     # end getLastUpdatedQuery
@@ -422,9 +390,7 @@ class CSIntelAPI:
 
         query = self.getLastUpdatedQuery(date, searchFilter, perPage=self.perpage, page=self.page, include_deleted=self.deleted, **kwargs)
 
-        result = self.request(query)
-
-        return result
+        return self.request(query)
     # end SearchDate()
 
     def getEpochDaysAgo(self, days):
@@ -438,11 +404,8 @@ class CSIntelAPI:
         # get datetime object for n days ago.
         daysago = datetime.now() - timedelta(days=days)
 
-        # convert that to standard unix time, ust int() to chop off decimal.
-        etime = int((daysago - datetime(1970, 1, 1)).total_seconds())
-
         # return number of seconds
-        return etime
+        return int((daysago - datetime(1970, 1, 1)).total_seconds())
 
     def SearchLastDay(self, **kwargs):
         """
@@ -451,9 +414,7 @@ class CSIntelAPI:
 
         etime = self.getEpochDaysAgo(1)
 
-        result = self.SearchLastUpdated(etime, **kwargs)
-
-        return result
+        return self.SearchLastUpdated(etime, **kwargs)
     # end SearchLastDay()
 
     def SearchLastWeek(self, **kwargs):
@@ -463,9 +424,7 @@ class CSIntelAPI:
 
         etime = self.getEpochDaysAgo(7)
 
-        result = self.SearchLastUpdated(etime, **kwargs)
-
-        return result
+        return self.SearchLastUpdated(etime, **kwargs)
     # end SearchLastWeek()
 
     def GetReportQuery(self, report, searchFilter, **kwargs):
@@ -477,17 +436,8 @@ class CSIntelAPI:
         Other keyword arguments can be passed to include sorting etc.
         Returns a string for the URL query search.
         """
-        # TODO - match reports??
-        encodedargs = ""
-
-        if any(kwargs):
-            # extra keyword arguments get passed - use to sort, filter.
-            encodedargs = "&" + self.getURLParams(**kwargs)
-
-        # build the query string
-        query = "report?" + searchFilter + "=" + report + encodedargs
-
-        return query
+        encodedargs = f"&{self.getURLParams(**kwargs)}" if any(kwargs) else ""
+        return f"report?{searchFilter}={report}{encodedargs}"
     # end GetReportQuery()
 
     def SearchReport(self, report, searchFilter="equal", **kwargs):
@@ -497,9 +447,7 @@ class CSIntelAPI:
         Returns the results of the API query.
         """
         query = self.GetReportQuery(report, searchFilter, perPage=self.perpage, page=self.page, include_deleted=self.deleted, **kwargs)
-        result = self.request(query)
-
-        return result
+        return self.request(query)
     # end SearchReport()
 
     def SearchTarget(self, target, searchFilter="match", **kwargs):
@@ -517,12 +465,10 @@ class CSIntelAPI:
             raise Exception("Invalid target industry")
 
         # append industry
-        label = "Target/" + target
+        label = f"Target/{target}"
 
         query = self.GetLabelQuery(label, searchFilter, perPage=self.perpage, page=self.page, include_deleted=self.deleted, **kwargs)
-        result = self.request(query)
-
-        return result
+        return self.request(query)
     # end SearchTarget()
 
     def GetLabelQuery(self, label, searchFilter, **kwargs):
@@ -537,18 +483,8 @@ class CSIntelAPI:
         Returns a string for the URL query search
         """
 
-        # good query: search/labels?match=Retail
-
-        encodedargs = ""
-
-        if any(kwargs):
-            # extra keyword arguments get passed - used to sort, filter.
-            encodedargs = "&" + self.getURLParams(**kwargs)
-
-        # build the query string
-        query = "labels?" + searchFilter + "=" + label + encodedargs
-
-        return query
+        encodedargs = f"&{self.getURLParams(**kwargs)}" if any(kwargs) else ""
+        return f"labels?{searchFilter}={label}{encodedargs}"
     # end GetLabelQuery
 
     def SearchLabel(self, label, searchFilter="match", **kwargs):
@@ -571,9 +507,7 @@ class CSIntelAPI:
             raise Exception("Invalid search filter")
 
         query = self.GetLabelQuery(label, searchFilter, perPage=self.perpage, page=self.page, include_deleted=self.deleted, **kwargs)
-        result = self.request(query)
-
-        return result
+        return self.request(query)
     # end SearchLabel()
 
     def SearchConfidence(self, confidence, searchFilter="match", **kwargs):
@@ -589,15 +523,13 @@ class CSIntelAPI:
         if searchFilter not in self.validFilter:
             raise Exception("Invalid search filter")
         if confidence not in validConfidence:
-            raise Exception("Invalid confidence level: " + confidence)
+            raise Exception(f"Invalid confidence level: {confidence}")
 
         # append industry
-        label = "MaliciousConfidence/" + confidence
+        label = f"MaliciousConfidence/{confidence}"
 
         query = self.GetLabelQuery(label, searchFilter, perPage=self.perpage, page=self.page, include_deleted=self.deleted, **kwargs)
-        result = self.request(query)
-
-        return result
+        return self.request(query)
     # end SearchConfidence()
 
     def SearchKillChain(self, chain, searchFilter="match", **kwargs):
@@ -613,15 +545,13 @@ class CSIntelAPI:
         if searchFilter not in self.validFilter:
             raise Exception("Invalid search filter")
         if chain not in validKillChain:
-            raise Exception("Invalid kill chain link: " + chain)
+            raise Exception(f"Invalid kill chain link: {chain}")
 
         # append chain to label type
-        label = "kill_chain/" + chain
+        label = f"kill_chain/{chain}"
 
         query = self.GetLabelQuery(label, searchFilter, perPage=self.perpage, page=self.page, include_deleted=self.deleted, **kwargs)
-        result = self.request(query)
-
-        return result
+        return self.request(query)
     # end SearchKillChain()
 
     def SearchMalware(self, malware, searchFilter="match", **kwargs):
@@ -636,15 +566,10 @@ class CSIntelAPI:
         if searchFilter not in self.validFilter:
             raise Exception("Invalid search filter")
 
-        encodedargs = ""
-        if any(kwargs):
-            encodedargs = "&" + self.getURLParams(**kwargs)
+        encodedargs = f"&{self.getURLParams(**kwargs)}" if any(kwargs) else ""
+        query = f"malware_family?{searchFilter}={malware}{encodedargs}"
 
-        query = "malware_family?" + searchFilter + "=" + malware + encodedargs
-
-        result = self.request(query)
-
-        return result
+        return self.request(query)
     # end SearchMalware()
 
     def SearchActive(self, searchFilter="match", **kwargs):
@@ -663,9 +588,7 @@ class CSIntelAPI:
         label = "confirmedactive"
 
         query = self.GetLabelQuery(label, searchFilter, perPage=self.perpage, page=self.page, include_deleted=self.deleted, **kwargs)
-        result = self.request(query)
-
-        return result
+        return self.request(query)
     # end SearchActive()
 
     def SearchThreatType(self, threat, searchFilter="match", **kwargs):
@@ -681,15 +604,13 @@ class CSIntelAPI:
         if searchFilter not in self.validFilter:
             raise Exception("Invalid search filter")
         if threat not in validThreat:
-            raise Exception("Invalid Threat type: " + threat)
+            raise Exception(f"Invalid Threat type: {threat}")
 
         # append chain to label type
-        label = "ThreatType/" + threat
+        label = f"ThreatType/{threat}"
 
         query = self.GetLabelQuery(label, searchFilter, **kwargs)
-        result = self.request(query)
-
-        return result
+        return self.request(query)
     # end SearchThreatType()
 
     def SearchDomainType(self, domain, searchFilter="match", **kwargs):
@@ -705,15 +626,13 @@ class CSIntelAPI:
         if searchFilter not in self.validFilter:
             raise Exception("Invalid search filter")
         if domain not in validType:
-            raise Exception("Invalid Domain type: " + domain)
+            raise Exception(f"Invalid Domain type: {domain}")
 
         # append chain to label type
-        label = "DomaintType/" + domain
+        label = f"DomaintType/{domain}"
 
         query = self.GetLabelQuery(label, searchFilter, perPage=self.perpage, page=self.page, include_deleted=self.deleted, **kwargs)
-        result = self.request(query)
-
-        return result
+        return self.request(query)
     # end SearchDomainType()
 
     def SearchEmailType(self, email, searchFilter="match", **kwargs):
@@ -729,15 +648,13 @@ class CSIntelAPI:
         if searchFilter not in self.validFilter:
             raise Exception("Invalid search filter")
         if email not in validType:
-            raise Exception("Invalid email type: " + email)
+            raise Exception(f"Invalid email type: {email}")
 
         # append chain to label type
-        label = "EmailAddressType/" + email
+        label = f"EmailAddressType/{email}"
 
         query = self.GetLabelQuery(label, searchFilter, perPage=self.perpage, page=self.page, include_deleted=self.deleted, **kwargs)
-        result = self.request(query)
-
-        return result
+        return self.request(query)
     # end SearchEmailType()
 
     def SearchIPType(self, iptype, searchFilter="match", **kwargs):
@@ -753,72 +670,55 @@ class CSIntelAPI:
         if searchFilter not in self.validFilter:
             raise Exception("Invalid search filter")
         if iptype not in validType:
-            raise Exception("Invalid email IP type: " + iptype)
+            raise Exception(f"Invalid email IP type: {iptype}")
 
         label = iptype
 
         query = self.GetLabelQuery(label, searchFilter, perPage=self.perpage, page=self.page, include_deleted=self.deleted, **kwargs)
-        result = self.request(query)
-
-        return result
+        return self.request(query)
     # end SearchIPType()
 
     def GetMQDownloadQuery(self, filehash, **kwargs):
-        #Model query:
-        #GET https://intelapi.crowdstrike.com/malquery/download/v1/<filehash>
-
-        #TODO error checking on filehash
-
-        # build the query string
-        query = "download/v1/" + filehash
-
-        return query
+        return f"download/v1/{filehash}"
     #end GetMQDownloadQuery
 
     def MQDownloadHash(self, filehash, **kwargs): 
         # Search malquery by file hash to download the sample
         query = self.GetMQDownloadQuery(filehash, **kwargs)
 
-        result = self.request(query, queryType="malquery")
-        return result
+        return self.request(query, queryType="malquery")
 
     # end MQDownloadHash
 
     def GetReportId(self, report):
         #/reports/queries/reports/v1?name=CSIT-18178
-        query = "queries/reports/v1?name=" + report
+        query = f"queries/reports/v1?name={report}"
 
         searchResult= self.request(query, queryType="reports")
 
         data = json.loads(searchResult.text)
-        ids = data['resources'][0] #TODO could return more than one...
-
-        return ids
+        return data['resources'][0]
 
     def GetReportDownloadJSONQuery(self, report):
         #entities/reports/v1?ids=40535
         reportId = self.GetReportId(report)
-        query = "entities/reports/v1?ids=" + reportId
-        return query
+        return f"entities/reports/v1?ids={reportId}"
 
     def GetReportDownloadPDFQuery(self, report):
         #entities/report-files/v1?ids=40535
         reportId = self.GetReportId(report)
-        query = "entities/report-files/v1?ids=" + reportId
-        return query
+        return f"entities/report-files/v1?ids={reportId}"
 
     def GetReportJSON(self, report, **kwargs):
         reportId = self.GetReportId(report)
         query = self.GetReportDownloadJSONQuery(reportId, **kwargs)
 
-        result = self.request(query, queryType="reports")
-        return result
+        return self.request(query, queryType="reports")
 
     def GetReportPDF(self, report, **kwargs):
         query = self.GetReportDownloadPDFQuery(report, **kwargs)
 
-        result = self.request(query, queryType="reports")
-        return result
+        return self.request(query, queryType="reports")
 
 # ===================================
 # Output
@@ -883,11 +783,11 @@ class CSIntelAPI:
 
             if related:
                 # are we including related indicators?
-                for relation in item['relations']:
-                    # loop through each item in relations
-                    y = relation['type'] + ":" + relation['indicator'] + ":related"
-                    # add it to the list
-                    indicators.append(y)
+                indicators.extend(
+                    relation['type'] + ":" + relation['indicator'] + ":related"
+                    for relation in item['relations']
+                )
+
             x += la  # add labels
             # add to list
             indicators.append(x)
@@ -907,15 +807,8 @@ class CSIntelAPI:
 
         reports = []
         for item in result:
-            # loop through each JSON indicator
-            r = item['reports']
-            # does it have anything in the reports section?
-            if r:
-                for x in r:
-                    # if it exists, add each item in the list of reports
-                    # to our list
-                    reports.append(x)
-
+            if r := item['reports']:
+                reports.extend(iter(r))
         # return list of strings of reports
         return reports
     # end GetReportsFromResults()
@@ -940,10 +833,11 @@ class CSIntelAPI:
 
             if related:
                 # should we include related indicators?
-                for relation in item['relations']:
-                    if relation['type'] == "domain":
-                        # if it's a domain, add it to the list.
-                        domains.append(relation['indicator'])
+                domains.extend(
+                    relation['indicator']
+                    for relation in item['relations']
+                    if relation['type'] == "domain"
+                )
 
         # return a list of strings of domains
         return domains
@@ -970,10 +864,11 @@ class CSIntelAPI:
             if related:
                 # If you also wanted related indicators, loop through
                 # those and check for IP addresses as well.
-                for relation in item['relations']:
-                    if relation['type'] == "ip_address":
-                        # find the IPs and add them to the list.
-                        ips.append(relation['indicator'])
+                ips.extend(
+                    relation['indicator']
+                    for relation in item['relations']
+                    if relation['type'] == "ip_address"
+                )
 
         # return list of strings of IP addresses
         return ips
@@ -991,14 +886,9 @@ class CSIntelAPI:
         actors = []
         # loop through each JSON item in the results
         for item in result:
-            # grab the actors section
-            a = item['actors']
-            if a:
+            if a := item['actors']:
                 # if there's anything in here loop through them
-                for x in a:
-                    # add each actor the list we're building
-                    actors.append(x)
-
+                actors.extend(iter(a))
         # return the list of actors that have been identified.
         # This list is raw, you may want to sort and dedupe.
         return actors
